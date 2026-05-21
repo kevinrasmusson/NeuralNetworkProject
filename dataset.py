@@ -14,20 +14,19 @@ def clean_text(text):
     text = html.unescape(str(text))
     text = text.lower()
 
-    # Normalize dashes and quotes
     text = text.replace("–", " ")
     text = text.replace("—", " ")
     text = text.replace('"', " ")
     text = text.replace("”", " ")
     text = text.replace("“", " ")
 
-    # Keep Swedish characters, numbers, and basic punctuation
+    # Replace all numbers with a shared number token
+    text = re.sub(r"\d+", " numtoken ", text)
+
+    # Keep Swedish characters and basic punctuation
     text = re.sub(r"[^a-zA-ZåäöÅÄÖéÉ0-9.,!?]+", " ", text)
 
-    # Make punctuation separate tokens
     text = re.sub(r"([.,!?])", r" \1 ", text)
-
-    # Remove extra whitespace
     text = re.sub(r"\s+", " ", text).strip()
 
     return text
@@ -38,8 +37,8 @@ def load_data(filepath):
 
     df.columns = df.columns.str.strip()
 
-    print("Columns in dataset:")
-    print(df.columns)
+    #print("Columns in dataset:")
+    #print(df.columns)
 
     headline_col = "headline"
     body_col = "regexp_replace"
@@ -68,11 +67,13 @@ def load_data(filepath):
 
     # Clean combined text
     df["text_clean"] = df["text"].apply(clean_text)
+    df["num_tokens"] = df["text_clean"].apply(lambda x: len(x.split()))
+    df = df[df["num_tokens"] >= 6]
 
     # Remove rows where cleaned text is empty
     df = df[df["text_clean"].str.strip() != ""]
 
-    print(df[["text", "text_clean"]].head())
-    print("Dataset shape after loading:", df.shape)
+    #print(df[["text", "text_clean"]].head())
+    #print("Dataset shape after loading:", df.shape)
 
     return df

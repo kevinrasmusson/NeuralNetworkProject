@@ -1,33 +1,34 @@
+import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Embedding, Bidirectional, LSTM, Dense, Dropout
+from tensorflow.keras.layers import Input, Embedding, Bidirectional, LSTM, Dense, Dropout, GRU
 from tensorflow.keras.optimizers import Adam
 
 
+
 def create_model(
-    vocab_size: int,
-    sequence_length: int = 5,
-    embedding_dim: int = 100,
-    lstm_units: int = 64,
-    dense_units: int = 64,
-    dropout_rate: float = 0.5,
-    learning_rate: float = 0.001
+    vocab_size,
+    sequence_length=15,
+    embedding_dim=100,
+    rnn_units=64,
+    dense_units=64,
+    dropout_rate=0.5,
+    learning_rate = 0.0005
 ):
     model = Sequential()
 
-    # Turns word IDs into dense vector representations
+    model.add(Input(shape=(sequence_length,)))
+
     model.add(
         Embedding(
             input_dim=vocab_size,
-            output_dim=embedding_dim,
-            input_length=sequence_length
+            output_dim=embedding_dim
         )
     )
 
-    # Reads the sequence both forwards and backwards
     model.add(
         Bidirectional(
             LSTM(
-                lstm_units,
+                rnn_units,
                 return_sequences=False,
                 dropout=0.1,
                 recurrent_dropout=0.1
@@ -35,31 +36,14 @@ def create_model(
         )
     )
 
-    # Fully connected layer
-    model.add(
-        Dense(
-            dense_units,
-            activation="relu"
-        )
-    )
-
-    # Regularization to reduce overfitting
-    model.add(
-        Dropout(dropout_rate)
-    )
-
-    # Output layer: one probability per word in vocabulary
-    model.add(
-        Dense(
-            vocab_size,
-            activation="softmax"
-        )
-    )
+    model.add(Dense(dense_units, activation="relu"))
+    model.add(Dropout(dropout_rate))
+    model.add(Dense(vocab_size, activation="softmax"))
 
     model.compile(
         optimizer=Adam(learning_rate=learning_rate),
         loss="sparse_categorical_crossentropy",
-        metrics=["accuracy"]
+        metrics=["accuracy", tf.keras.metrics.SparseTopKCategoricalAccuracy(k=3, name="top_3_accuracy"), tf.keras.metrics.SparseTopKCategoricalAccuracy(k=5, name="top_5_accuracy")],
     )
 
     return model
