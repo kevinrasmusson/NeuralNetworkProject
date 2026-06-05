@@ -15,9 +15,8 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau
 
 
 if __name__ == "__main__":
-    # -----------------------------
-    # Settings / hyperparameters
-    # -----------------------------
+
+    # Hyperparameters
     DATA_PATH = "text-ds.csv"
 
     SAMPLE_SIZE = 5000
@@ -33,9 +32,7 @@ if __name__ == "__main__":
     BATCH_SIZE = 64
     RANDOM_STATE = 42
 
-    # -----------------------------
     # Load and sample data
-    # -----------------------------
     df = load_data(DATA_PATH)
 
     # Random sample makes training faster and more representative than df.head(...)
@@ -44,9 +41,7 @@ if __name__ == "__main__":
 
     print("Dataset shape used for training:", df.shape)
 
-    # -----------------------------
     # Tokenize text
-    # -----------------------------
     tokenizer = Tokenizer(
         num_words=MAX_WORDS,
         oov_token="<UNK>" # Rare words
@@ -57,11 +52,11 @@ if __name__ == "__main__":
 
     print("Sample tokenized sequence:", sequences[0][:50])
 
-    # -----------------------------
+
     # Create input/output sequences
     # X = previous SEQUENCE_LENGTH words
     # y = next word
-    # -----------------------------
+
     X = []
     y = []
 
@@ -88,9 +83,7 @@ if __name__ == "__main__":
     print("Sample input sequence:", X[0])
     print("Sample target:", y[0])
 
-    # -----------------------------
     # Shuffle and split data
-    # -----------------------------
     np.random.seed(RANDOM_STATE)
     indices = np.arange(len(X))
     np.random.shuffle(indices)
@@ -106,9 +99,7 @@ if __name__ == "__main__":
     print("Training examples:", len(X_train))
     print("Validation examples:", len(X_val))
 
-    # -----------------------------
     # Create model
-    # -----------------------------
     model = create_model(
         vocab_size=MAX_WORDS,
         sequence_length=SEQUENCE_LENGTH,
@@ -120,9 +111,7 @@ if __name__ == "__main__":
 
     model.summary()
 
-    # -----------------------------
     # Create experiment folder
-    # -----------------------------
     experiment_name = (
         f"bilstm_seq{SEQUENCE_LENGTH}_"
         f"vocab{MAX_WORDS}_"
@@ -132,9 +121,7 @@ if __name__ == "__main__":
     experiment_dir = os.path.join("checkpoints", experiment_name)
     os.makedirs(experiment_dir, exist_ok=True)
 
-    # -----------------------------
     # Save hyperparameters
-    # -----------------------------
     hyperparameters = {
         "data_path": DATA_PATH,
         "sample_size": SAMPLE_SIZE,
@@ -155,15 +142,11 @@ if __name__ == "__main__":
     with open(os.path.join(experiment_dir, "hyperparameters.yaml"), "w", encoding="utf-8") as f:
         yaml.dump(hyperparameters, f, allow_unicode=True, sort_keys=False)
 
-    # -----------------------------
     # Save tokenizer
-    # -----------------------------
     with open(os.path.join(experiment_dir, "tokenizer.pkl"), "wb") as f:
         pickle.dump(tokenizer, f)
 
-    # -----------------------------
     # Callbacks
-    # -----------------------------
     early_stopping = EarlyStopping(
         monitor="val_top_5_accuracy",
         patience=3,
@@ -188,9 +171,7 @@ if __name__ == "__main__":
     verbose=1
     )
 
-    # -----------------------------
     # Train model
-    # -----------------------------
     history = model.fit(
         X_train,
         y_train,
@@ -200,15 +181,11 @@ if __name__ == "__main__":
         callbacks=[early_stopping, checkpoint, reduce_lr]
     )
 
-    # -----------------------------
     # Save training history
-    # -----------------------------
     history_df = pd.DataFrame(history.history)
     history_df.to_csv(os.path.join(experiment_dir, "training_history.csv"), index=False)
 
-    # -----------------------------
     # Save results
-    # -----------------------------
     best_epoch_index = history_df["val_top_5_accuracy"].idxmax()
 
     results = {
